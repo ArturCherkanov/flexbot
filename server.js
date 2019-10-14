@@ -3,7 +3,6 @@ require('dotenv').config();
 const express = require('express')
 const app = express()
 const TelegramBot = require('node-telegram-bot-api');
-const defaultMessage = ' -- ЛОХ';
 
 const token = '986452153:AAF8Nx2K7JvPPQe6G4j0rV-EFXwQvOlSiGU';
 const bot = new TelegramBot(token, { polling: true });
@@ -38,8 +37,26 @@ const commands = {
   }
 
 }
+
+const parseCommand = (commandString) => {
+
+  const lastIndex = commandString.indexOf(' ');
+  const isCommand = commandString.indexOf('/') !== -1;
+
+  return isCommand ? (lastIndex && commandString.substring(0, lastIndex) || commandString.substring(0, commandString.length)) : (null)
+}
+
+const handleError = (commandString) => {
+
+  const command = parseCommand(commandString)
+
+  return !!commands[command] || null
+
+}
+
 // bot.onText(new RegExp(hui), commands.echo);
 for (const [command, func] of Object.entries(commands)) {
+
   let commandName = new RegExp('\/' + command + ' (.+)')
   console.log(commandName, func);
   bot.onText(commandName, func);
@@ -49,22 +66,23 @@ for (const [command, func] of Object.entries(commands)) {
 
 // Listen for any kind of message. There are different kinds of
 // messages.
-bot.on('channel_chat_created', (msg)=>{
+bot.on('channel_chat_created', (msg) => {
   console.log(msg)
 })
 
 bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, `
-  Бля. Ну ты еблан, юзай комманды
-  create_flex
-  update_flex
-  delete_flex
-  view_flexes
-
-  `);
-  // send a message to the chat acknowledging receipt of their message
-  bot.sendMessage(chatId, 'Received your message');
+  isError = handleError(msg.text)
+  if (isError) {
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, `
+        Бля. Ну ты еблан, юзай комманды
+        create_flex
+        update_flex
+        delete_flex
+        view_flexes
+        `);
+    bot.sendMessage(chatId, 'Received your message');
+  }
 });
 
 
