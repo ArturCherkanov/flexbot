@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express')
 const app = express()
 const TelegramBot = require('node-telegram-bot-api');
+const dbRoute = "mongodb+srv://arturcherkanov:Fhneh111!@cluster0-owmev.mongodb.net/test?retryWrites=true&w=majority";
+const mongoose = require("mongoose");
 
 const token = '986452153:AAF8Nx2K7JvPPQe6G4j0rV-EFXwQvOlSiGU';
 const bot = new TelegramBot(token, { polling: true });
@@ -37,6 +39,14 @@ const commands = {
   }
 
 }
+
+mongoose.connect(
+  dbRoute,
+  { useNewUrlParser: true }
+)
+  .then(()=>console.log("MongoDB has started"))
+  .catch(e => console.log('hui', e));
+mongoose.set('useCreateIndex', true);
 
 const parseCommand = (commandString) => {
 
