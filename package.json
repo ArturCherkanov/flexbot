@@ -20,7 +20,8 @@
     "node-telegram-bot-api": "^0.30.0",
     "nodemon": "^1.19.4",
     "telegram-bot-api": "^1.3.3",
-    "translate-json-object": "^2.3.4"
+    "translate-json-object": "^2.3.4",
+    "yandex-translate": "^2.1.3"
   },
   "devDependencies": {
     "@types/mongoose": "^5.5.23",

@@ -55,7 +55,7 @@ bot.on('channel_chat_created', (msg) => {
 
 bot.on('message', (msg) => {
   const isError: boolean = handleError(msg.text)
-  const chatId = msg.chat.id;
+  const chatId: number = msg.chat.id;
 
   if (isError) {
     bot.sendMessage(chatId, `
@@ -71,32 +71,7 @@ bot.on('message', (msg) => {
   }
 });
 
-// Require the module and instantiate instance
-var TJO = require('translate-json-object')();
- 
-// Choose the service to use google/yandex,
-// if you provide both yandex will be used as the default
-TJO.init({
-  yandexApiKey: 'trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197'
-});
- 
-// An example scenario (json) object
-var example = {
-  "name": "Please enter your name",
-  "list": ["translate", "object", "made", "easy"],
-  "nested": {
-    "hello": "hello",
-    "world": "world"
-    }
-};
- 
-// Translate method takes (source object, and language code)
-TJO.translate(example, 'es')
-    .then(function(data) {
-      console.log(data);
-    }).catch(function(err) {
-      console.log('error ', err)
-    });
+
 app.listen(3000, () => {
   console.log(`listening on 3000 PORT`)
 })
