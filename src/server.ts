@@ -40,7 +40,7 @@ const handleError = (commandString) => {
 // bot.onText(new RegExp(hui), commands.echo);
 for (const [command, func] of Object.entries(commands)) {
 
-  let commandName = new RegExp('\/' + command + ' (.+)')
+  let commandName = new RegExp('\/' + command + '( (.+))?')
   console.log(commandName, func);
   bot.onText(commandName, func);
 }
@@ -66,9 +66,7 @@ bot.on('message', (msg) => {
         view_flexes
         `);
     bot.sendMessage(chatId, 'Received your message');
-  } else {
-    bot.sendMessage(chatId, 'Паша лох');
-  }
+  } 
 });
 
 

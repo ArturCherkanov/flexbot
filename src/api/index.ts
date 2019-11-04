@@ -4,8 +4,8 @@ import express from 'express';
 const app = express()
 import axios from 'axios';
 import { inflateSync } from "zlib";
-import { translateObj } from '../utils/utils';
-let moment =require('moment');
+import { defineDate, translateObj } from '../utils/utils';
+import moment from 'moment';
 
 const axiosLusiInstance = axios.create({
 
@@ -15,7 +15,7 @@ const axiosLusiInstance = axios.create({
         "Ocp-Apim-Subscription-Key": '0945e8cd992e4fb9a276279043715f74',
     }
 });
-const Flex = require('../models/Flex');
+import Flex from '../models/Flex';
 
 type CommandHandler = (msg: any, match: Array<string>) => void;
 
@@ -24,16 +24,61 @@ interface ICommands {
 }
 
 export const createCommands = (bot: TelegramBot) => ({
+    end: (msg, match) => {
+        const chatId: string = msg.chat.id;
+        const resp: string = match[2];
+        bot.sendMessage(chatId, 'Паша апни зп, прилага за пару дней писана');
+    },
+    start: (msg, match) => {
+        const chatId: string = msg.chat.id;
+        let currentDate = moment().format();
+        let endOfDay = moment().add(1,'days').format();
+        let flexId: string;
+        Flex.findOne({
+            data: {
+                "$gte": currentDate,
+                "$lte": endOfDay
+            }
+        }).then((res) => {
+            flexId = res._id
+        }).catch((err) => {
+            console.log(err)
+        })
+
+        const options: any = {
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [{
+                        text: 'Стопарь', callback_data: '1', function(res) {
+                        }
+                    }],
+                ]
+            })
+        };
+
+        bot.sendMessage(chatId, "да начнется флекс!", options)
+            .then((res) => {
+                bot.on("callback_query",  async (data) => {
+                    const currentUserName = data.from.username
+                    const flex = await Flex.findOne({_id:flexId})
+                    
+                    flex.flex_game = {
+                        ...flex.flex_game,
+                        [currentUserName]: (flex.flex_game && flex.flex_game[currentUserName]) ? flex.flex_game[currentUserName] + 1 : 1 
+                    }
+
+                    await flex.save();
+                })
+            });
+    },
     create: (msg, match) => {
         const chatId: string = msg.chat.id;
-        const resp: string = match[1];
+        const resp: string = match[2];
         const flex = new Flex();
-        let translatedText: string = '';
-        // flex.name = resp;
 
         translate.translate(resp, { to: 'en' }, function (err, res) {
-            console.log(typeof res.text[0]);
-            translatedText = res.text[0];
+            const translatedText = res.text[0];
+            console.log(res.text[0])
             axiosLusiInstance.get('https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/3e9994e5-907a-42b6-8bf6-4600ded14589?staging=true&verbose=true&timezoneOffset=180&subscription-key=0945e8cd992e4fb9a276279043715f74', {
                 params: {
                     q: translatedText
@@ -54,14 +99,15 @@ export const createCommands = (bot: TelegramBot) => ({
 
 
                 translateObj(flexParsedModel).then((flexData: any) => {
-                    
+                    console.log('flexData', flexData)
+
                     flex.name = flexData.Name;
                     flex.location = flexData.Location;
-                    flex.data = moment(flexData.Data.replace(/\s/g,"")).format(moment.defaultFormatUtc);
-                    
+                    flex.data = defineDate(flexData.Data);
+
                     flex.save()
                         .then(() => {
-                            bot.sendMessage(chatId, 'Флекс ' + (flexData.Name || '"No Name"') +'на ' +flex.data + ' успешно создан!');
+                            bot.sendMessage(chatId, 'Флекс ' + (flexData.Name || '"No Name"') + 'на ' + flex.data + ' успешно создан!');
                         })
                         .catch(() => {
                             console.log('error')
@@ -78,12 +124,9 @@ export const createCommands = (bot: TelegramBot) => ({
     },
     find: (msg, match) => {
         const chatId: string = msg.chat.id;
-        const resp: string = match[1];
+        const resp: string = match[2];
 
-        const flex = new Flex();
-
-        console.log('хуй')
-        flex.findOne({ name: resp })
+        Flex.findOne({ name: resp })
             .then(res => {
                 bot.sendMessage(chatId, 'Флекс:' + res);
             })
@@ -96,37 +139,4 @@ export const createCommands = (bot: TelegramBot) => ({
     delete: () => {
         console.log('hui')
     }
-    //     update_flex(msg, match): void {
-    //       const chatId: string = msg.chat.id;
-    //       const resp: string = match[1];
-
-    //       bot.sendMessage(chatId, 'Флекс ' + resp + ' успешно обновлен!');
-    //     }
-    //     delete_flex(msg, match): void {
-    //       const chatId = msg.chat.id;
-    //       const resp = match[1];
-    //       bot.sendMessage(chatId, 'Флекс ' + resp + ' успешно удален!');
-    //     }
-    //     view_flex(msg, match): void {
-    //       const chatId = msg.chat.id;
-    //       const resp = match[1];
-    //       const flex = new Flex();
-
-    //       console.log('хуй')
-    //       flex.find({ name: resp })
-    //         .then(res => {
-    //           bot.sendMessage(chatId, 'Флекс:' + res);
-    //         })
-    //         .catch(err => {
-    //           bot.sendMessage(chatId, 'Флекс ' + resp + ' не найден!');
-    //         })
-
-    //     }
-    //     echo  (msg, match) : void {
-    //         const chatId = msg.chat.id;
-    //     const resp = match[1];
-
-    //     // send back the matched "whatever" to the chat
-    //     bot.sendMessage(chatId, resp);
-    //   }
 } as ICommands);

@@ -1,4 +1,12 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
+
+interface IFlex extends Document{
+    name: string,
+    location: string,
+    data:string,
+    flex_game: object,
+}
+
 
 const FlexSchema = new Schema({
     name: { 
@@ -9,7 +17,10 @@ const FlexSchema = new Schema({
      },
      data: {
         type: Date
+     },
+     flex_game: {
+        type: Object,
      }
 });
 
-module.exports = mongoose.model("Flex", FlexSchema);
+export default mongoose.model<IFlex>("Flex", FlexSchema);
