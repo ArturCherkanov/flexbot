@@ -8,7 +8,7 @@ const FlexSchema = new Schema({
         type: String, default: 'no location'
      },
      data: {
-        type: String, default: 'No data'
+        type: Date
      }
 });
 

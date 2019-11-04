@@ -4,6 +4,8 @@ import express from 'express';
 const app = express()
 import axios from 'axios';
 import { inflateSync } from "zlib";
+import { translateObj } from '../utils/utils';
+let moment =require('moment');
 
 const axiosLusiInstance = axios.create({
 
@@ -37,31 +39,39 @@ export const createCommands = (bot: TelegramBot) => ({
                     q: translatedText
                 }
             }).then(res => {
+                interface flexParsedModel {
+                    Name: string,
+                    location: string,
+                    time: string,
+                };
+                let flexParsedModel: any = new Object();
 
-                let village = res.data.entities.map(item => {
+                res.data.entities.forEach(item => {
 
-                    let flexParsedModel = new Object();
-                    
                     flexParsedModel[item.role] = item.entity;
-                    return flexParsedModel
                 })
-                console.log(village)
+
+
+
+                translateObj(flexParsedModel).then((flexData: any) => {
+                    
+                    flex.name = flexData.Name;
+                    flex.location = flexData.Location;
+                    flex.data = moment(flexData.Data.replace(/\s/g,"")).format(moment.defaultFormatUtc);
+                    
+                    flex.save()
+                        .then(() => {
+                            bot.sendMessage(chatId, 'Флекс ' + (flexData.Name || '"No Name"') +'на ' +flex.data + ' успешно создан!');
+                        })
+                        .catch(() => {
+                            console.log('error')
+                        })
+                })
             })
                 .catch((err => {
                     console.log(err)
                 }))
         });
-
-        //don't input 
-        // flex.save()
-        //     .then(() => {
-        //         console.log('success')
-        //     })
-        //     .catch(() => {
-        //         console.log('error')
-        //     })
-
-        bot.sendMessage(chatId, 'Флекс ' + resp + ' успешно создан!');
     },
     update: () => {
         console.log('hui')
@@ -69,7 +79,6 @@ export const createCommands = (bot: TelegramBot) => ({
     find: (msg, match) => {
         const chatId: string = msg.chat.id;
         const resp: string = match[1];
-        console.log('хуй')
 
         const flex = new Flex();
 
