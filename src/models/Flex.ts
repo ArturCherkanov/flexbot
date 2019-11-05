@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 interface IFlex extends Document{
     name: string,
     location: string,
+    yandexMapLink: string,
     data:string,
     flex_game: object,
     chatId: string,
@@ -29,6 +30,9 @@ const FlexSchema = new Schema({
      },
      creator: {
          type: String,
+     },
+     yandexMapLink: {
+        type: String,
      },
      active:{
          type: Boolean, default: false,

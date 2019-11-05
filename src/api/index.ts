@@ -12,6 +12,7 @@ import {
     YANDEX_MAPS_API_PATH,
     YANDEX_MAPS_PATH,
 } from '../api/constants'
+import { encode } from "punycode";
 
 // const translate = Translate('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197') 
 
@@ -84,11 +85,6 @@ export const createCommands = (bot: TelegramBot) => ({
                     q: translatedText
                 }
             }).then(res => {
-                interface flexParsedModel {
-                    Name: string,
-                    location: string,
-                    time: string,
-                };
 
                 let flexParsedModel: object = new Object();
 
@@ -151,25 +147,25 @@ export const createCommands = (bot: TelegramBot) => ({
 
         if (!resp) {
 
-            let currentDate = moment().format();
+            const currentDate = moment().subtract(1, 'days');
 
-            Flex.findOne({
-                data: {
-                    "$gte": currentDate
-                }
-            }).then((res) => {
-                let message = "Ближайший флекс состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator
+            utils.getFlexModel(chatId, Flex).then((res) => {
+                const locationLink = "Ccылка на геолокацию: " + res.yandexMapLink && res.yandexMapLink || "Пока не добавлена!";
+                const message = "Ближайший флекс состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator + "\n" + locationLink;
                 bot.sendMessage(chatId, message);
             })
-        } else {
-            Flex.findOne({ name: resp })
-                .then(res => {
-                    bot.sendMessage(chatId, 'Флекс:' + res.name + "\n" + "Местоположение:" + res.location + "\n" + "Дата:" + res.data);
-                })
-                .catch(err => {
-                    bot.sendMessage(chatId, 'Флекс ' + resp + ' не найден!');
-                })
+            
+            return;
         }
+
+        Flex.findOne({ name: resp })
+            .then(res => {
+                const message = 'Флекс:' + res.name + "\n" + "Местоположение:" + res.location + "\n" + "Дата:" + res.data
+                bot.sendMessage(chatId, message);
+            })
+            .catch(err => {
+                bot.sendMessage(chatId, 'Флекс ' + resp + ' не найден!');
+            })
 
     },
 
@@ -191,7 +187,7 @@ export const createCommands = (bot: TelegramBot) => ({
 
     location: (msg, match) => {
         const chatId: string = msg.chat.id;
-        const username  = msg.from.username
+        const username = msg.from.username
         const resp: string = match[2].replace(/\s/g, "+");
 
         axios.get(YANDEX_MAPS_PATH, {
@@ -199,15 +195,27 @@ export const createCommands = (bot: TelegramBot) => ({
                 apikey: YANDEX_MAPS_API_PATH,
                 geocode: resp,
                 format: "json",
-            },   
-             headers: {
+            },
+            headers: {
                 "Content-Type": "application/json",
             }
-        }).then(res=>{
-            const location = res.data.response.GeoObjectCollection.featureMember[0].GeoObject.Point.pos;
+        }).then(async res => {
+
+            const response = res.data.response.GeoObjectCollection;
+            const encodeLocation = encodeURI(response.featureMember[0].GeoObject.Point.pos);
+            const encodeSearch = encodeURI(response.metaDataProperty.GeocoderResponseMetaData.request);
+            const yandexMapLink = 'https://yandex.by/maps?ll=' + encodeLocation + '&mode=search&ol=biz&sll=' + encodeLocation + '&sspn=0.006438%2C0.002291&text=' + encodeSearch + '&z=17.81';
+
+            const flexModel = await utils.getFlexModel(chatId, Flex)
+            flexModel.yandexMapLink = yandexMapLink;
+
+            flexModel.save().then(() => {
+                bot.sendMessage(chatId, yandexMapLink)
+            })
+
         })
-        .catch(err=>{
-            console.log(err)
-        })
+            .catch(err => {
+                console.log(err)
+            })
     }
 } as ICommands);
