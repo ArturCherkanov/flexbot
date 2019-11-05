@@ -101,13 +101,14 @@ export const createCommands = (bot: TelegramBot) => ({
 
     create: (msg, match) => {
         const chatId: string = msg.chat.id;
+        const sender = msg.from.username;
         const resp: string = match[2];
         const flex = new Flex();
 
         bot.getChat(chatId);
 
         translate.translate(resp, { to: 'en' }, function (err, res) {
-            translatedText = res.text[0];
+            const translatedText: string = res.text[0];
             axiosLusiInstance.get('https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/3e9994e5-907a-42b6-8bf6-4600ded14589?staging=true&verbose=true&timezoneOffset=180&subscription-key=0945e8cd992e4fb9a276279043715f74', {
                 params: {
                     q: translatedText
@@ -133,6 +134,7 @@ export const createCommands = (bot: TelegramBot) => ({
                     flex.location = flexData.Location;
                     flex.data = defineDate(flexData.Data);
                     flex.chatId = chatId;
+                    flex.creator = sender;
                     flex.save()
                         .then(() => {
                             bot.sendMessage(chatId, 'Флекс ' + (flexData.Name || '"No Name"') + 'на ' + flex.data + ' успешно создан!');
@@ -161,28 +163,42 @@ export const createCommands = (bot: TelegramBot) => ({
         const chatId: string = msg.chat.id;
         const resp: string = match[2];
 
+        if (resp === undefined) {
 
-        Flex.findOne({ name: resp })
-            .then(res => {
-                bot.sendMessage(chatId, 'Флекс:' + res.name + "\n" + "Местоположение:" + res.location + "\n" + "Дата:" + res.data);
+            let currentDate = moment().format();
+
+            Flex.findOne({
+                data: {
+                    "$gte": currentDate
+                }
+            }).then((res) => {
+                let message = "Ближайший флекс состоится: "+ res.data + "Место положение:" +res.location + "\n"+ "Создатель флекса: "+res.creator
+                bot.sendMessage(chatId, message);
             })
-            .catch(err => {
-                bot.sendMessage(chatId, 'Флекс ' + resp + ' не найден!');
-            })
+        } else {
+            Flex.findOne({ name: resp })
+                .then(res => {
+                    bot.sendMessage(chatId, 'Флекс:' + res.name + "\n" + "Местоположение:" + res.location + "\n" + "Дата:" + res.data);
+                })
+                .catch(err => {
+                    bot.sendMessage(chatId, 'Флекс ' + resp + ' не найден!');
+                })
+        }
+
     },
     delete: (msg, match) => {
-        
+
         const chatId: string = msg.chat.id;
-        const resp: string = match[1];
+        const resp: string = match[2];
 
         Flex.findOneAndRemove({ name: resp })
-        .then(res=>{
-            bot.sendMessage(chatId, 'Флекс ' +  resp + (res===null && ' не найден!'|| ' удален!'));
-            
-        })
-       .catch(err=>{
-        console.log(err)
+            .then(res => {
+                bot.sendMessage(chatId, 'Флекс ' + resp + (res === null && ' не найден!' || ' удален!'));
 
-       })
+            })
+            .catch(err => {
+                console.log(err)
+
+            })
     }
 } as ICommands);

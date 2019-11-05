@@ -6,6 +6,7 @@ interface IFlex extends Document{
     data:string,
     flex_game: object,
     chatId: string,
+    creator: string,
 }
 
 
@@ -23,6 +24,9 @@ const FlexSchema = new Schema({
         type: Object,
      },
      chatId: {
+         type: String,
+     },
+     creator: {
          type: String,
      }
 });
