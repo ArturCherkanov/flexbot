@@ -1,8 +1,7 @@
-const translate = require('yandex-translate')('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197');
-
+import Translate from 'yandex-translate';
 import moment from 'moment';
-import Flex from '../models/Flex';
 
+const translate = Translate('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197') 
 
 export const utils = {
     parseCommand: (commandString) => {
