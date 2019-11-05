@@ -1,10 +1,13 @@
 import TelegramBot from "node-telegram-bot-api";
 import axios from 'axios';
-import { defineDate, translateObj } from '../utils/utils';
+import { utils } from '../utils/utils';
 import moment from 'moment';
 import Flex from '../models/Flex';
-
-const translate = require('yandex-translate')('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197');
+import {
+    options,
+    translate,
+    LUIS_PATH
+} from '../api/constants'
 
 const axiosLusiInstance = axios.create({
     timeout: 15000,
@@ -23,65 +26,25 @@ interface ICommands {
 export const createCommands = (bot: TelegramBot) => ({
 
     end: async (msg, match) => {
+
         const chatId: string = msg.chat.id;
-        const resp: string = match[2];
-        let currentDate = moment().format();
-        let endOfDay = moment().add(1, 'days').format();
+        const flexModel = await utils.getFlexModel(chatId, Flex)
 
-        const flexModel = await Flex.findOne({
-            $and: [{
-                chatId: chatId
-            },
-            {
-                data: {
-                    "$gte": currentDate,
-                    "$lte": endOfDay
-                }
-            }]
+        flexModel.active = false;
+        flexModel.save();
 
-        })
-        const players = flexModel.flex_game;
-        const scores: any = Object.values(flexModel.flex_game)
-        const maxScore = Math.max(scores)
-        const bestScore = Object.keys(players).find(key => players[key] === maxScore)
-        bot.sendMessage(chatId, "Самый трезвый: " + bestScore + ": " + maxScore * 50 + " грамм")
+        utils.getWinner(bot, chatId, flexModel);
 
     },
-    start: (msg, match) => {
+
+    start: async (msg, match) => {
         const chatId: string = msg.chat.id;
-        let currentDate = moment().format();
-        let endOfDay = moment().add(1, 'days').format();
         let flexId: string;
-        Flex.findOne(
-            {
-                $and: [
-                    {
-                        chatId: chatId
-                    },
-                    {
-                        data: {
-                            "$gte": currentDate,
-                            "$lte": endOfDay
-                        }
-                    }
-                ]
+        const flexModel = await utils.getFlexModel(chatId, Flex)
 
-            }).then((res) => {
-                flexId = res._id
-            }).catch((err) => {
-                console.log(err)
-            })
-
-        const options: object = {
-            reply_markup: JSON.stringify({
-                inline_keyboard: [
-                    [{
-                        text: 'Стопарь', callback_data: '1', function(res) {
-                        }
-                    }],
-                ]
-            })
-        };
+        flexId = flexModel._id
+        flexModel.active = true;
+        await flexModel.save();
 
         bot.sendMessage(chatId, "да начнется флекс!", options)
             .then((res) => {
@@ -89,12 +52,15 @@ export const createCommands = (bot: TelegramBot) => ({
                     const currentUserName = data.from.username
                     const flex = await Flex.findOne({ _id: flexId })
 
+                    flexModel.active = true;
+
                     flex.flex_game = {
                         ...flex.flex_game,
                         [currentUserName]: (flex.flex_game && flex.flex_game[currentUserName]) ? flex.flex_game[currentUserName] + 1 : 1
                     }
 
                     await flex.save();
+
                 })
             });
     },
@@ -105,11 +71,9 @@ export const createCommands = (bot: TelegramBot) => ({
         const resp: string = match[2];
         const flex = new Flex();
 
-        bot.getChat(chatId);
-
         translate.translate(resp, { to: 'en' }, function (err, res) {
             const translatedText: string = res.text[0];
-            axiosLusiInstance.get('https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/3e9994e5-907a-42b6-8bf6-4600ded14589?staging=true&verbose=true&timezoneOffset=180&subscription-key=0945e8cd992e4fb9a276279043715f74', {
+            axiosLusiInstance.get(LUIS_PATH, {
                 params: {
                     q: translatedText
                 }
@@ -119,6 +83,7 @@ export const createCommands = (bot: TelegramBot) => ({
                     location: string,
                     time: string,
                 };
+
                 let flexParsedModel: object = new Object();
 
                 res.data.entities.forEach(item => {
@@ -128,20 +93,35 @@ export const createCommands = (bot: TelegramBot) => ({
 
 
 
-                translateObj(flexParsedModel).then((flexData: any) => {
+                utils.translateObj(flexParsedModel).then((flexData: any) => {
 
                     flex.name = flexData.Name;
                     flex.location = flexData.Location;
-                    flex.data = defineDate(flexData.Data);
+                    flex.data = utils.defineDate(flexData.Data);
                     flex.chatId = chatId;
                     flex.creator = sender;
-                    flex.save()
-                        .then(() => {
-                            bot.sendMessage(chatId, 'Флекс ' + (flexData.Name || '"No Name"') + 'на ' + flex.data + ' успешно создан!');
-                        })
-                        .catch(() => {
-                            console.log('error')
-                        })
+
+                    let currentDate = flex.data;
+                    let endOfDay = moment(currentDate).add(1, 'days').format();
+                    Flex.findOne({
+                        data: {
+                            "$gte": currentDate,
+                            "$lte": endOfDay
+                        }
+                    }).then(res => {
+                        if (res === null) {
+                            flex.save()
+                                .then(() => {
+                                    bot.sendMessage(chatId, 'Флекс ' + (flexData.Name || '"No Name"') + 'на ' + flex.data + ' успешно создан!');
+                                })
+                            return
+                        }
+                        bot.sendMessage(chatId, 'Флекс уже есть!')
+
+                    })
+
+                    // console.log(isFlexExist)
+
                 })
             })
                 .catch((err => {
@@ -172,7 +152,7 @@ export const createCommands = (bot: TelegramBot) => ({
                     "$gte": currentDate
                 }
             }).then((res) => {
-                let message = "Ближайший флекс состоится: "+ res.data + "Место положение:" +res.location + "\n"+ "Создатель флекса: "+res.creator
+                let message = "Ближайший флекс состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator
                 bot.sendMessage(chatId, message);
             })
         } else {
@@ -186,6 +166,7 @@ export const createCommands = (bot: TelegramBot) => ({
         }
 
     },
+
     delete: (msg, match) => {
 
         const chatId: string = msg.chat.id;
@@ -200,5 +181,8 @@ export const createCommands = (bot: TelegramBot) => ({
                 console.log(err)
 
             })
+    },
+
+    addmylocation: () => {
     }
 } as ICommands);

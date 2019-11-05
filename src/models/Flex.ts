@@ -7,6 +7,7 @@ interface IFlex extends Document{
     flex_game: object,
     chatId: string,
     creator: string,
+    active:boolean,
 }
 
 
@@ -28,6 +29,9 @@ const FlexSchema = new Schema({
      },
      creator: {
          type: String,
+     },
+     active:{
+         type: Boolean, default: false,
      }
 });
 
