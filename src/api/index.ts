@@ -3,11 +3,17 @@ import axios from 'axios';
 import { utils } from '../utils/utils';
 import moment from 'moment';
 import Flex from '../models/Flex';
+// import Translate from 'yandex-translate';
+const translate = require('yandex-translate')('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197');
+
 import {
     options,
-    translate,
-    LUIS_PATH
+    LUIS_PATH,
+    YANDEX_MAPS_API_PATH,
+    YANDEX_MAPS_PATH,
 } from '../api/constants'
+
+// const translate = Translate('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197') 
 
 const axiosLusiInstance = axios.create({
     timeout: 15000,
@@ -143,7 +149,7 @@ export const createCommands = (bot: TelegramBot) => ({
         const chatId: string = msg.chat.id;
         const resp: string = match[2];
 
-        if (resp === undefined) {
+        if (!resp) {
 
             let currentDate = moment().format();
 
@@ -174,7 +180,7 @@ export const createCommands = (bot: TelegramBot) => ({
 
         Flex.findOneAndRemove({ name: resp })
             .then(res => {
-                bot.sendMessage(chatId, 'Флекс ' + resp + (res === null && ' не найден!' || ' удален!'));
+                bot.sendMessage(chatId, 'Флекс ' + resp + (!res && ' не найден!' || ' удален!'));
 
             })
             .catch(err => {
@@ -183,6 +189,25 @@ export const createCommands = (bot: TelegramBot) => ({
             })
     },
 
-    addmylocation: () => {
+    location: (msg, match) => {
+        const chatId: string = msg.chat.id;
+        const username  = msg.from.username
+        const resp: string = match[2].replace(/\s/g, "+");
+
+        axios.get(YANDEX_MAPS_PATH, {
+            params: {
+                apikey: YANDEX_MAPS_API_PATH,
+                geocode: resp,
+                format: "json",
+            },   
+             headers: {
+                "Content-Type": "application/json",
+            }
+        }).then(res=>{
+            const location = res.data.response.GeoObjectCollection.featureMember[0].GeoObject.Point.pos;
+        })
+        .catch(err=>{
+            console.log(err)
+        })
     }
 } as ICommands);
