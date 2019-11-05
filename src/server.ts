@@ -66,7 +66,7 @@ bot.on('message', (msg) => {
         view_flexes
         `);
     bot.sendMessage(chatId, 'Received your message');
-  } 
+  }
 });
 
 

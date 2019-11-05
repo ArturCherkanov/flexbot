@@ -107,7 +107,7 @@ export const createCommands = (bot: TelegramBot) => ({
         bot.getChat(chatId);
 
         translate.translate(resp, { to: 'en' }, function (err, res) {
-            const translatedText = res.text[0];
+            translatedText = res.text[0];
             axiosLusiInstance.get('https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/3e9994e5-907a-42b6-8bf6-4600ded14589?staging=true&verbose=true&timezoneOffset=180&subscription-key=0945e8cd992e4fb9a276279043715f74', {
                 params: {
                     q: translatedText
@@ -146,6 +146,7 @@ export const createCommands = (bot: TelegramBot) => ({
                     console.log(err)
                 }))
         });
+
     },
 
     update: (msg, match) => {
@@ -156,21 +157,32 @@ export const createCommands = (bot: TelegramBot) => ({
     },
 
     find: (msg, match) => {
+
         const chatId: string = msg.chat.id;
         const resp: string = match[2];
 
+
         Flex.findOne({ name: resp })
             .then(res => {
-                bot.sendMessage(chatId, 'Флекс:' + res);
+                bot.sendMessage(chatId, 'Флекс:' + res.name + "\n" + "Местоположение:" + res.location + "\n" + "Дата:" + res.data);
             })
             .catch(err => {
                 bot.sendMessage(chatId, 'Флекс ' + resp + ' не найден!');
             })
-
-
     },
+    delete: (msg, match) => {
+        
+        const chatId: string = msg.chat.id;
+        const resp: string = match[1];
 
-    delete: () => {
-        console.log('hui')
+        Flex.findOneAndRemove({ name: resp })
+        .then(res=>{
+            bot.sendMessage(chatId, 'Флекс ' +  resp + (res===null && ' не найден!'|| ' удален!'));
+            
+        })
+       .catch(err=>{
+        console.log(err)
+
+       })
     }
 } as ICommands);
