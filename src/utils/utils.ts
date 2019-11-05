@@ -1,14 +1,10 @@
-const translate = require('yandex-translate')('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197');
-
+import Translate from 'yandex-translate';
 import moment from 'moment';
 
-// interface utils {
-//     parseCommand(commandString:string): any;
-//     translateObj(translateObject:object): any;
-// }
+const translate = Translate('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197') 
 
 export const utils = {
-    parseCommand: (commandString:string) => {
+    parseCommand: (commandString) => {
 
         const lastIndex = commandString.indexOf(' ');
         const isCommand = commandString.indexOf('/') !== -1;
@@ -17,7 +13,7 @@ export const utils = {
     },
 
 
-    translateObj: async (translateObject:object) => {
+    translateObj: async (translateObject) => {
         const keys = Object.keys(translateObject);
         const values = await Promise.all(keys.map(key => new Promise((resolve, reject) => {
             translate.translate(translateObject[key], { to: 'ru' }, function (err, res) {
@@ -44,7 +40,7 @@ export const utils = {
         return currentDate;
     },
 
-    getFlexModel: (chatId:string, FlexModel:any) => {
+    getFlexModel: (chatId, FlexModel) => {
 
         let currentDate = moment().format();
         let endOfDay = moment().add(1, 'days').format();
@@ -63,7 +59,7 @@ export const utils = {
 
     },
 
-    getWinner: (bot, chatId:string, flexModel:any) =>{
+    getWinner: (bot, chatId, flexModel) =>{
         const players = flexModel.flex_game;
         const scores: any = Object.values(flexModel.flex_game)
         const maxScore = Math.max(scores)
