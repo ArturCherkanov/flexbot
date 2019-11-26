@@ -185,12 +185,12 @@ export const createCommands = (bot: TelegramBot) => ({
             })
     },
 
-    location: (msg, match) => {
+    location: async (msg, match) => {
         const chatId: string = msg.chat.id;
         const username = msg.from.username
         const resp: string = match[2].replace(/\s/g, "+");
 
-        axios.get(YANDEX_MAPS_PATH, {
+        const res = await axios.get(YANDEX_MAPS_PATH, {
             params: {
                 apikey: YANDEX_MAPS_API_PATH,
                 geocode: resp,
@@ -199,23 +199,25 @@ export const createCommands = (bot: TelegramBot) => ({
             headers: {
                 "Content-Type": "application/json",
             }
-        }).then(async res => {
-
+        })
+        
+            const getFlexModel = utils.getFlexModel
             const response = res.data.response.GeoObjectCollection;
             const encodeLocation = encodeURI(response.featureMember[0].GeoObject.Point.pos);
             const encodeSearch = encodeURI(response.metaDataProperty.GeocoderResponseMetaData.request);
             const yandexMapLink = 'https://yandex.by/maps?ll=' + encodeLocation + '&mode=search&ol=biz&sll=' + encodeLocation + '&sspn=0.006438%2C0.002291&text=' + encodeSearch + '&z=17.81';
+            const flex = new Flex()
 
-            const flexModel = await utils.getFlexModel(chatId, Flex)
+            const flexModel = await getFlexModel(chatId, Flex)
             flexModel.yandexMapLink = yandexMapLink;
 
-            flexModel.save().then(() => {
+            await flex.save().then(() => {
                 bot.sendMessage(chatId, yandexMapLink)
             })
 
-        })
-            .catch(err => {
-                console.log(err)
-            })
+        // })
+        //     .catch(err => {
+        //         console.log(err)
+        //     })
     }
 } as ICommands);

@@ -40,12 +40,12 @@ export const utils = {
         return currentDate;
     },
 
-    getFlexModel: (chatId, FlexModel) => {
+    getFlexModel: async (chatId, FlexModel) => {
 
-        let currentDate = moment().format();
+        let currentDate = moment().startOf('day').format();
         let endOfDay = moment().add(1, 'days').format();
 
-        return FlexModel.findOne({
+        let flex =  await FlexModel.findOne({
             $and: [{
                 chatId: chatId
             },
@@ -57,6 +57,7 @@ export const utils = {
             }]
         });
 
+        return flex;
     },
 
     getWinner: (bot, chatId, flexModel) =>{
