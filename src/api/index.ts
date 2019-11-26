@@ -3,8 +3,7 @@ import axios from 'axios';
 import { utils } from '../utils/utils';
 import moment from 'moment';
 import Flex from '../models/Flex';
-// import Translate from 'yandex-translate';
-const translate = require('yandex-translate')('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197');
+import Translate from 'yandex-translate';
 
 import {
     options,
@@ -14,7 +13,7 @@ import {
 } from '../api/constants'
 import { encode } from "punycode";
 
-// const translate = Translate('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197') 
+const translate = Translate('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197') 
 
 const axiosLusiInstance = axios.create({
     timeout: 15000,
@@ -52,7 +51,6 @@ export const createCommands = (bot: TelegramBot) => ({
         flexId = flexModel._id
         flexModel.active = true;
         await flexModel.save();
-
         bot.sendMessage(chatId, "да начнется флекс!", options)
             .then((res) => {
                 bot.on("callback_query", async (data) => {
@@ -150,7 +148,7 @@ export const createCommands = (bot: TelegramBot) => ({
             const currentDate = moment().subtract(1, 'days');
 
             utils.getFlexModel(chatId, Flex).then((res) => {
-                const locationLink = "Ccылка на геолокацию: " + res.yandexMapLink && res.yandexMapLink || "Пока не добавлена!";
+                const locationLink = "Ccылка на геолокацию: " + res && res.yandexMapLink || "Пока не добавлена!";
                 const message = "Ближайший флекс состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator + "\n" + locationLink;
                 bot.sendMessage(chatId, message);
             })
