@@ -11,7 +11,7 @@ const app = express()
 const dbRoute = dataBaseRoute;
 const token = telegaToken;
 const bot = new TelegramBot(token, { polling: true });
-
+utils.createNotification();
 mongoose.connect(
   dbRoute,
   { useNewUrlParser: true }

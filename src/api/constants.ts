@@ -18,3 +18,5 @@ export const telegaToken = "986452153:AAF8Nx2K7JvPPQe6G4j0rV-EFXwQvOlSiGU";
 export const YANDEX_MAPS_API_PATH = "609429d0-01e4-4fe4-945c-5a3db317fa51";
 
 export const YANDEX_MAPS_PATH = "https://geocode-maps.yandex.ru/1.x/";
+
+export const ERROR_MESSAGE = "Хуйню написал,"
