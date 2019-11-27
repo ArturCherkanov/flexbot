@@ -31,13 +31,14 @@ export const utils = {
             'завтра': moment().add(1, 'days').format(),
             'вчера': moment().subtract(1, 'days')
         };
-        let currentDate = moment(date.replace(/\s/g, "")).format(moment.defaultFormatUtc);
+        
+        let currentDate = date && moment(date.replace(/\s/g, "")).format(moment.defaultFormatUtc);
 
         if (!moment(date).isValid()) {
             for (let key in undefinedDates) {
                 if (date.indexOf(key) !== -1) currentDate = undefinedDates[key]
             }
-        }
+        } 
         return currentDate;
     },
 
@@ -65,11 +66,8 @@ export const utils = {
         bot.sendMessage(chatId, "Самый трезвый: " + bestScore + ": " + maxScore * 50 + " грамм")
     },
 
-    createNotification: () => {
-        let j = schedule.scheduleJob({ rule: '*/1 * * * * *' }, function () {
-            console.log('Time for tea!');
-
-        });
+    createNotification: (callback) => {
+        let j = schedule.scheduleJob({ rule: '*/30 * * * * *' }, callback());
     },
 
     handleError: (bot, rightPattern: string) => {

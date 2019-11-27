@@ -1,9 +1,10 @@
-import TelegramBot from "node-telegram-bot-api";
+import TelegramBot, { KeyboardButton } from "node-telegram-bot-api";
 import axios from 'axios';
 import { utils } from '../utils/utils';
 import moment from 'moment';
 import Flex from '../models/Flex';
 import Translate from 'yandex-translate';
+import schedule from 'node-schedule';
 
 import {
     options,
@@ -13,7 +14,7 @@ import {
 } from '../api/constants'
 import { encode } from "punycode";
 
-const translate = Translate('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197') 
+const translate = Translate('trnsl.1.1.20191028T211302Z.cb09357ddb661c0b.c749257fcc90f0dc715ff27d55d1d3e034125197')
 
 const axiosLusiInstance = axios.create({
     timeout: 15000,
@@ -70,6 +71,32 @@ export const createCommands = (bot: TelegramBot) => ({
             });
     },
 
+    flexification: (msg, match) =>{
+
+        const chatId: string = msg.chat.id;
+        // let flexId: string;
+        let currentDate = moment().format();
+        let endOfDay = moment(currentDate).add(1, 'days').format();
+        let resp: string = match[2];
+
+
+        
+        let j = schedule.scheduleJob({ rule: '*/30 * * * * *' },  () => {
+            if(resp=="end") {j.cancel(); return};
+           
+            Flex.findOne({ chatId: chatId, data: { "$lte": endOfDay }, active: false })
+                .then(res => {
+                    if (res) {
+                        bot.sendMessage(chatId, "Ближайший флекс " + res.data)
+                    } 
+                })
+                .catch(err=>{
+                    console.log(err)
+                })
+          });
+    },
+
+
     create: (msg, match) => {
         const chatId: string = msg.chat.id;
         const sender = msg.from.username;
@@ -101,15 +128,16 @@ export const createCommands = (bot: TelegramBot) => ({
                     flex.chatId = chatId;
                     flex.creator = sender;
 
-                    let currentDate = flex.data;
+                    let currentDate = moment(flex.data).format();
                     let endOfDay = moment(currentDate).add(1, 'days').format();
                     Flex.findOne({
+                        chatId: chatId,
                         data: {
                             "$gte": currentDate,
                             "$lte": endOfDay
                         }
                     }).then(res => {
-                        if (res === null) {
+                        if (!res) {
                             flex.save()
                                 .then(() => {
                                     bot.sendMessage(chatId, 'Флекс ' + (flexData.Name || '"No Name"') + 'на ' + flex.data + ' успешно создан!');
@@ -118,9 +146,11 @@ export const createCommands = (bot: TelegramBot) => ({
                         }
                         bot.sendMessage(chatId, 'Флекс уже есть!')
 
+                    }).then(res => {
+                        flex
                     })
 
-                    // console.log(isFlexExist)
+
 
                 })
             })
@@ -152,7 +182,7 @@ export const createCommands = (bot: TelegramBot) => ({
                 const message = "Ближайший флекс состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator + "\n" + locationLink;
                 bot.sendMessage(chatId, message);
             })
-            
+
             return;
         }
 
@@ -198,24 +228,20 @@ export const createCommands = (bot: TelegramBot) => ({
                 "Content-Type": "application/json",
             }
         })
-        
-            const getFlexModel = utils.getFlexModel
-            const response = res.data.response.GeoObjectCollection;
-            const encodeLocation = encodeURI(response.featureMember[0].GeoObject.Point.pos);
-            const encodeSearch = encodeURI(response.metaDataProperty.GeocoderResponseMetaData.request);
-            const yandexMapLink = 'https://yandex.by/maps?ll=' + encodeLocation + '&mode=search&ol=biz&sll=' + encodeLocation + '&sspn=0.006438%2C0.002291&text=' + encodeSearch + '&z=17.81';
-            const flex = new Flex()
 
-            const flexModel = await getFlexModel(chatId, Flex)
-            flexModel.yandexMapLink = yandexMapLink;
+        const getFlexModel = utils.getFlexModel
+        const response = res.data.response.GeoObjectCollection;
+        const encodeLocation = encodeURI(response.featureMember[0].GeoObject.Point.pos);
+        const encodeSearch = encodeURI(response.metaDataProperty.GeocoderResponseMetaData.request);
+        const yandexMapLink = 'https://yandex.by/maps?ll=' + encodeLocation + '&mode=search&ol=biz&sll=' + encodeLocation + '&sspn=0.006438%2C0.002291&text=' + encodeSearch + '&z=17.81';
+        const flex = new Flex()
 
-            await flex.save().then(() => {
-                bot.sendMessage(chatId, yandexMapLink)
-            })
+        const flexModel = await getFlexModel(chatId, Flex)
+        flexModel.yandexMapLink = yandexMapLink;
 
-        // })
-        //     .catch(err => {
-        //         console.log(err)
-        //     })
+        await flexModel.save().then(() => {
+            bot.sendMessage(chatId, flexModel.yandexMapLink)
+        })
+
     }
 } as ICommands);
