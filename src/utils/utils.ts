@@ -31,14 +31,14 @@ export const utils = {
             'завтра': moment().add(1, 'days').format(),
             'вчера': moment().subtract(1, 'days')
         };
-        
+
         let currentDate = date && moment(date.replace(/\s/g, "")).format(moment.defaultFormatUtc);
 
         if (!moment(date).isValid()) {
             for (let key in undefinedDates) {
                 if (date.indexOf(key) !== -1) currentDate = undefinedDates[key]
             }
-        } 
+        }
         return currentDate;
     },
 
@@ -55,6 +55,34 @@ export const utils = {
             },
 
         })
+    },
+
+
+    consist: (checkedText, checkFields) => {
+
+        const typeOfCheckFields = typeof checkFields
+        let isConsist: boolean;
+
+        switch (typeOfCheckFields) {
+            case 'string':
+                isConsist = checkedText.indexOf(checkFields) !== -1 && true;
+                break;
+            case 'object':
+                const array = Object.keys(checkFields).forEach(
+                    i => {
+                        const element = checkFields[i];
+                        console.log('hui', checkedText.indexOf(element) !== -1)
+
+                        if (checkedText.indexOf(element) === -1) {
+                            isConsist = false
+                        }
+                    }
+                )
+                break;
+
+        }
+
+
     },
 
     getWinner: (bot, chatId, flexModel) => {

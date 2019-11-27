@@ -71,7 +71,7 @@ export const createCommands = (bot: TelegramBot) => ({
             });
     },
 
-    flexification: (msg, match) =>{
+    flexification: (msg, match) => {
 
         const chatId: string = msg.chat.id;
         // let flexId: string;
@@ -80,20 +80,20 @@ export const createCommands = (bot: TelegramBot) => ({
         let resp: string = match[2];
 
 
-        
-        let j = schedule.scheduleJob({ rule: '*/30 * * * * *' },  () => {
-            if(resp=="end") {j.cancel(); return};
-           
+
+        let j = schedule.scheduleJob({ rule: '*/30 * * * * *' }, () => {
+            if (resp == "end") { j.cancel(); return };
+
             Flex.findOne({ chatId: chatId, data: { "$lte": endOfDay }, active: false })
                 .then(res => {
                     if (res) {
                         bot.sendMessage(chatId, "Ближайший флекс " + res.data)
-                    } 
+                    }
                 })
-                .catch(err=>{
+                .catch(err => {
                     console.log(err)
                 })
-          });
+        });
     },
 
 
@@ -147,7 +147,7 @@ export const createCommands = (bot: TelegramBot) => ({
                         bot.sendMessage(chatId, 'Флекс уже есть!')
 
                     }).then(res => {
-                        flex
+
                     })
 
 
@@ -161,10 +161,37 @@ export const createCommands = (bot: TelegramBot) => ({
 
     },
 
-    update: (msg, match) => {
+    update: async (msg, match) => {
         const chatId: string = msg.chat.id;
-        const resp: string = match[2];
+        const startDate = (match[2] && moment(match[2]).startOf('day').format()) || moment().startOf('day');
+        // let currentDate = moment().startOf('day').format();
+        let endDate = moment(startDate).add(1, 'days').format();
 
+        Flex.findOne({
+            chatId: chatId,
+            data: {
+                "$gte": startDate,
+                "$lte": endDate
+            },
+
+        }).then(res => {
+            if (res) {
+                const flex = res;
+                const replyMsg: string = "Введи поле и значение, которое хотел бы поменять:" +'\n'+ "имя:"+ flex.name+ '\n'+ "дата:"+ moment(flex.data).startOf('day').format() +'\n'+ "akTuBHo"+flex.active;
+                bot.sendMessage(chatId, replyMsg).then(res => {
+                    const messageId = res.message_id;
+                    const reply = [
+                        flex.active.toString(),
+                        moment(flex.data).startOf('day').format(),
+                    ];
+
+                    bot.onReplyToMessage(chatId, messageId, (mes) => {
+                        
+                        if (flex.chatId == chatId) {const isConsist = utils.consist(replyMsg,reply)}
+                    })
+                })
+            }
+        })
 
     },
 
