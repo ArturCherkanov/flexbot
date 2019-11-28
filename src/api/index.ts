@@ -128,7 +128,7 @@ export const createCommands = (bot: TelegramBot) => ({
                     flex.chatId = chatId;
                     flex.creator = sender;
 
-                    let currentDate = moment(flex.data).format();
+                    let currentDate = moment(flex.data).startOf('day').format();
                     let endOfDay = moment(currentDate).add(1, 'days').format();
                     Flex.findOne({
                         chatId: chatId,
@@ -149,9 +149,6 @@ export const createCommands = (bot: TelegramBot) => ({
                     }).then(res => {
 
                     })
-
-
-
                 })
             })
                 .catch((err => {
@@ -176,20 +173,49 @@ export const createCommands = (bot: TelegramBot) => ({
 
         }).then(res => {
             if (res) {
-                const flex = res;
-                const replyMsg: string = "Введи поле и значение, которое хотел бы поменять:" +'\n'+ "имя:"+ flex.name+ '\n'+ "дата:"+ moment(flex.data).startOf('day').format() +'\n'+ "akTuBHo"+flex.active;
-                bot.sendMessage(chatId, replyMsg).then(res => {
-                    const messageId = res.message_id;
-                    const reply = [
-                        flex.active.toString(),
-                        moment(flex.data).startOf('day').format(),
-                    ];
 
-                    bot.onReplyToMessage(chatId, messageId, (mes) => {
-                        
-                        if (flex.chatId == chatId) {const isConsist = utils.consist(replyMsg,reply)}
+                const flex = res;
+                const flexDate = moment(flex.data).startOf('day').format()
+                const replyMsg: string = "Скопируйте нужное поле и поменяйте его значение:" + 
+                '\n' + "name: " + flex.name + 
+                '\n' + "data: " + flexDate + 
+                '\n' + "active: " + flex.active+ 
+                '\n' + "location: " + flex.location;
+
+                bot.sendMessage(chatId, replyMsg)
+                    .then(res => {
+                        const messageId = res.message_id;
+                        const reply = [
+                            flex.active.toString(),
+                            flexDate,
+                        ];
+
+                        bot.onReplyToMessage(chatId, messageId, (mes) => {
+
+                            const properties = mes.text.split(',');
+                            let updatedParams = {};
+
+                            properties.forEach(function (property) {
+                                const tup = property.split(':');
+                                updatedParams[tup[0].trim()] = tup[1].trim();
+                            });
+
+                            if (flex.chatId == chatId) {
+
+                                const isConsist = utils.consist(replyMsg, reply)
+                                console.log(moment(flex.data).toISOString())
+                                isConsist &&
+                                    Flex.findOneAndUpdate({
+                                        chatId: chatId,
+                                        data: moment(flex.data).toISOString(),
+                                    },
+                                        updatedParams
+                                    ).then(res => {
+                                        bot.sendMessage(chatId,'Изменено!')
+                                    })
+                            }
+                        })
                     })
-                })
             }
         })
 
@@ -206,7 +232,7 @@ export const createCommands = (bot: TelegramBot) => ({
 
             utils.getFlexModel(chatId, Flex).then((res) => {
                 const locationLink = "Ccылка на геолокацию: " + res && res.yandexMapLink || "Пока не добавлена!";
-                const message = "Ближайший флекс состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator + "\n" + locationLink;
+                const message = "Ближайший флекс" + res.name + " состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator + "\n" + locationLink;
                 bot.sendMessage(chatId, message);
             })
 

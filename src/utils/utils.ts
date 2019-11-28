@@ -61,14 +61,14 @@ export const utils = {
     consist: (checkedText, checkFields) => {
 
         const typeOfCheckFields = typeof checkFields
-        let isConsist: boolean;
+        let isConsist: boolean=true;
 
         switch (typeOfCheckFields) {
             case 'string':
-                isConsist = checkedText.indexOf(checkFields) !== -1 && true;
+                isConsist = checkedText.indexOf(checkFields) !== -1 && true || false;
                 break;
             case 'object':
-                const array = Object.keys(checkFields).forEach(
+                Object.keys(checkFields).forEach(
                     i => {
                         const element = checkFields[i];
                         console.log('hui', checkedText.indexOf(element) !== -1)
@@ -79,9 +79,8 @@ export const utils = {
                     }
                 )
                 break;
-
         }
-
+        return isConsist;
 
     },
 
