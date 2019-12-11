@@ -42,7 +42,7 @@ export const utils = {
         return currentDate;
     },
 
-    getFlexModel: async (chatId, FlexModel) => {
+    getFlexModel: async (chatId, FlexModel, searchParams) => {
 
         let currentDate = moment().startOf('day').format();
         let endOfDay = moment().add(1, 'days').format();

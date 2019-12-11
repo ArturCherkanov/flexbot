@@ -176,11 +176,11 @@ export const createCommands = (bot: TelegramBot) => ({
 
                 const flex = res;
                 const flexDate = moment(flex.data).startOf('day').format()
-                const replyMsg: string = "Скопируйте нужное поле и поменяйте его значение:" + 
-                '\n' + "name: " + flex.name + 
-                '\n' + "data: " + flexDate + 
-                '\n' + "active: " + flex.active+ 
-                '\n' + "location: " + flex.location;
+                const replyMsg: string = "Скопируйте нужное поле и поменяйте его значение:" +
+                    '\n' + "name: " + flex.name +
+                    '\n' + "data: " + flexDate +
+                    '\n' + "active: " + flex.active +
+                    '\n' + "location: " + flex.location;
 
                 bot.sendMessage(chatId, replyMsg)
                     .then(res => {
@@ -211,7 +211,7 @@ export const createCommands = (bot: TelegramBot) => ({
                                     },
                                         updatedParams
                                     ).then(res => {
-                                        bot.sendMessage(chatId,'Изменено!')
+                                        bot.sendMessage(chatId, 'Изменено!')
                                     })
                             }
                         })
@@ -230,11 +230,20 @@ export const createCommands = (bot: TelegramBot) => ({
 
             const currentDate = moment().subtract(1, 'days');
 
-            utils.getFlexModel(chatId, Flex).then((res) => {
-                const locationLink = "Ccылка на геолокацию: " + res && res.yandexMapLink || "Пока не добавлена!";
-                const message = "Ближайший флекс" + res.name + " состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator + "\n" + locationLink;
-                bot.sendMessage(chatId, message);
-            })
+            Flex.findOne(
+                {
+                    chatId: chatId,
+                    data: {
+                        "$gte": currentDate,
+                    }
+                }).then((res) => {
+
+                    if (!res) { bot.sendMessage(chatId, "404, not found на ближайшее время"); return; }
+
+                    const locationLink = "Ccылка на геолокацию: " + res && res.yandexMapLink || "Пока не добавлена!";
+                    const message = "Ближайший флекс" + res.name + " состоится: " + res.data + "Место положение:" + res.location + "\n" + "Создатель флекса: " + res.creator + "\n" + locationLink;
+                    bot.sendMessage(chatId, message);
+                })
 
             return;
         }
@@ -253,11 +262,12 @@ export const createCommands = (bot: TelegramBot) => ({
     delete: (msg, match) => {
 
         const chatId: string = msg.chat.id;
-        const resp: string = match[2];
+        const date: string = moment(match[2]).startOf('day').format();
+        const endDate: string = moment(date).endOf('day').format()
 
-        Flex.findOneAndRemove({ name: resp })
+        Flex.findOneAndRemove({ data: { "$gte": date, "$lte": endDate } })
             .then(res => {
-                bot.sendMessage(chatId, 'Флекс ' + resp + (!res && ' не найден!' || ' удален!'));
+                bot.sendMessage(chatId, 'Флекс ' + date + (!res && ' не найден!' || ' удален!'));
 
             })
             .catch(err => {
@@ -287,13 +297,13 @@ export const createCommands = (bot: TelegramBot) => ({
         const encodeLocation = encodeURI(response.featureMember[0].GeoObject.Point.pos);
         const encodeSearch = encodeURI(response.metaDataProperty.GeocoderResponseMetaData.request);
         const yandexMapLink = 'https://yandex.by/maps?ll=' + encodeLocation + '&mode=search&ol=biz&sll=' + encodeLocation + '&sspn=0.006438%2C0.002291&text=' + encodeSearch + '&z=17.81';
-        const flex = new Flex()
 
-        const flexModel = await getFlexModel(chatId, Flex)
+        const flexModel = await Flex.findOne({ chatId: chatId, data: { "$gte": moment().startOf('day') } })
+        //  getFlexModel(chatId, Flex)
         flexModel.yandexMapLink = yandexMapLink;
-
+        const date = flexModel.data
         await flexModel.save().then(() => {
-            bot.sendMessage(chatId, flexModel.yandexMapLink)
+            bot.sendMessage(chatId, "На ближайший фдекс: ("+date+") установлена локация: "+ flexModel.yandexMapLink)
         })
 
     }
